@@ -1,0 +1,1929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sky Drift</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#004e7c;--play-size:150px;--icon-size:90px}
+html,body{height:100%;margin:0;font-family:"DM Sans",sans-serif;background:linear-gradient(180deg,#aee7ff,#e0ffff);-webkit-font-smoothing:antialiased}
+#menu { background: url('bg.png') center/cover no-repeat; }
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hidden{display:none!important}
+#title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: -150px; /* lift the title higher on the screen */
+  margin-bottom: 10px;
+}
+
+.title-img {
+  width: 1000px;
+  max-width: 90%;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
+}
+
+.center-cluster {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-300px); /* move buttons upward from bottom */
+}
+
+#light-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255,215,0,0.65) 40%, rgba(255,255,255,0) 40%);
+  mix-blend-mode: screen;
+  transition: background 0.15s ease;
+  z-index: 5; /* was 0 — now it's above background but under UI */
+}
+
+#settingsScreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: linear-gradient(180deg, #aee7ff, #e0ffff);
+  padding-top: 80px;
+}
+
+.settings-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 40px;
+}
+
+.settings-container {
+  display: flex;               /* use flex so we can center child easily */
+  justify-content: center;     /* center the .settings-columns inside */
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 20px;             /* small horizontal padding so it doesn't hug edge on mobile */
+}
+
+
+
+
+.settings-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two tidy columns */
+  gap: 16px 60px;                 /* row gap 16px, column gap 60px */
+  align-items: start;
+  text-align: left;               /* labels look better left-aligned inside each cell */
+  width: min(720px, 100%);        /* restrict max visual width so columns remain tidy */
+  max-width: 900px;
+  margin: 0 auto;                 /* center the grid within its parent */
+}
+
+@media (max-width:640px) {
+  .settings-columns {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: calc(100% - 40px);
+  }
+}
+
+
+
+.setting-item {
+  display: inline-flex;           /* <— prevent stretching */
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  color: var(--accent);
+  font-size: 16px;
+  white-space: nowrap;
+  width: auto;                    /* <— stop it from expanding */
+}
+
+.setting-item input[type="checkbox"] {
+  all: unset; /* erase everything, even inherited props */
+  display: inline-block;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffd700;
+  border-radius: 4px;
+  background-color: white;
+  position: relative;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.setting-item input[type="checkbox"]:hover {
+  box-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
+}
+
+.setting-item input[type="checkbox"]:checked {
+  background-color: #ffd700;
+}
+
+.setting-item input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg);
+}
+
+.back-btn {
+  all: unset;                  /* reset absolutely everything */
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-block;
+  background: #222;
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  text-align: center;
+  padding: 10px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: auto !important;
+  min-width: 120px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 10;
+}
+
+.back-btn:hover {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.small-btn {
+  width: 52px;
+  height: 52px;
+  font-size: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+.popup {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.popup.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+
+.image-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.image-btn img {
+  width: 300px; /* adjust for button size */
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.image-btn:hover img {
+  transform: scale(1.05);
+  filter: brightness(1.15);
+}
+
+.image-btn:active img {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+}
+
+.image-btn:hover img {
+  filter: drop-shadow(0 0 10px #9de2ff) brightness(1.2);
+}
+
+
+.tiny-btn img {
+  width: 70px; /* smaller than before */
+  height: auto;
+}
+
+.tiny-btn {
+  transform: translateY(-50%);
+}
+
+
+/* Make login button bigger */
+.login-btn img {
+  width: 200px;
+  height: auto;
+}
+
+/* Keep its relative position tidy */
+.login-btn {
+  position: absolute;
+  top: 50%;
+  right: 24%;
+  transform: translateY(-50%);
+}
+
+/* Restore play button centering */
+#playButton {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  transform: translateY(-6px); /* fine-tune vertical centering */
+}
+
+/* Make left icon (plane selector) larger and properly aligned */
+.icon-btn.left-icon img {
+  width: 120px;
+  height: auto;
+}
+
+.icon-btn.left-icon {
+  position: absolute;
+  top: 50%;
+  left: 24%;
+  transform: translateY(-50%);
+}
+
+/* Recenter play button again (in case of layout shift) */
+#playButton {
+  margin: 0 auto;
+  position: relative;
+  transform: translateY(-6px);
+}
+
+/* Left icon button (custom PNG version) */
+.left-icon img {
+  width: 200px;   /* size of your PNG button */
+  height: auto;
+}
+
+.left-icon {
+  position: absolute;
+  top: 50%;
+  left: 24%; /* adjusts left-right placement */
+  transform: translateY(-50%);
+}
+
+
+
+#openSettings img {
+  width: 150px;  /* keep same size */
+  height: auto;
+}
+
+#openInfo img {
+  width: 150px; /* same as other tiny buttons */
+  height: auto;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+#openInfo:hover img {
+  filter: drop-shadow(0 0 10px #9de2ff) brightness(1.2);
+  transform: scale(1.05);
+}
+
+#openInfo:active img {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+}
+
+/* === Achievements Layout === */
+.achievements-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  width: 100%;
+  padding: 40px 0;
+}
+
+.ach-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80%;
+  max-width: 900px;
+  position: relative;
+}
+
+.ach-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.ach-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* === Achievements node states === */
+.ach-node {
+  position: relative;
+  background: #fff;
+  border-radius: 18px;
+  padding: 10px 20px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* Hover info tooltip */
+.ach-node::after {
+  content: attr(data-hint);
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ach-node:hover::after { opacity: 1; }
+
+/* Locked state */
+.ach-node.locked {
+  background: #222;
+  color: #888;
+  box-shadow: none;
+}
+.ach-node.locked::before {
+  content: "🔒";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 18px;
+  color: #fff;
+}
+
+/* Achieved (normal) */
+.ach-node.achieved {
+  background: #fff;
+  color: var(--accent);
+}
+
+/* Recently achieved — glow + particle loop */
+.ach-node.recent {
+  animation: glowPulse 1.8s infinite ease-in-out;
+  box-shadow: 0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(135,206,250,0.3);
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(135,206,250,0.3); }
+  50% { box-shadow: 0 0 25px rgba(255,255,255,0.6), 0 0 60px rgba(173,216,230,0.5); }
+}
+
+/* Particle shimmer overlay */
+.ach-node.recent::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, transparent 70%),
+              radial-gradient(circle at 70% 70%, rgba(173,216,230,0.4) 0%, transparent 80%);
+  background-size: 200% 200%;
+  animation: particleDrift 2.5s infinite linear;
+  border-radius: 18px;
+  pointer-events: none;
+}
+@keyframes particleDrift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+
+.ach-node:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+.ach-bar {
+  height: 4px;
+  width: 40px;
+  background: linear-gradient(90deg, #00bfff, #aee7ff);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* === Achievements layout & visuals === */
+.achievements-wrapper {
+  width: 100%;
+  max-width: 1000px;
+  margin-top: 20px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.ach-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 28px 0;
+  position: relative;
+  width: 100%;
+  justify-content: center;
+}
+
+.ach-row .row-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -28px;
+  background: transparent;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 18px;
+  padding: 2px 8px;
+}
+
+/* container of milestones (keeps them horizontally spaced) */
+.ach-row .milestone-track {
+  display:flex;
+  align-items:center;
+  gap: 36px;
+  justify-content:center;
+  width: 100%;
+  padding: 24px 12px;
+}
+
+/* single milestone */
+.milestone {
+  width: 110px;
+  min-width: 88px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(180deg,#ffffff,#f1f7fb);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  color:var(--accent);
+  font-weight:600;
+  cursor:default;
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+
+/* connector thin bar between milestones (rendered as pseudo or separate element) */
+.milestone + .connector {
+  width: 48px;
+  height: 2px;
+  background: rgba(0,0,0,0.12);
+  border-radius: 2px;
+  flex: 0 0 48px;
+}
+
+/* locked state: darkened and shows a lock overlay */
+.milestone.locked {
+  filter: grayscale(100%) brightness(.25);
+  color: rgba(255,255,255,0.6);
+  position:relative;
+}
+.milestone.locked::after {
+  content: "🔒";
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-size: 14px;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 1; /* lock sits behind tooltip now */
+}
+
+
+.milestone[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: -40px; /* lifts tooltip clearly above the box */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.milestone[data-tip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px); /* tiny lift motion */
+}
+
+
+
+/* achieved state - latest achieved glows */
+.milestone.achieved {
+  box-shadow: 0 10px 28px rgba(0,120,200,0.18);
+  transform: translateY(-4px);
+}
+
+/* subtle pulse ring (faint particles loop feel) */
+.milestone.achieved::before{
+  content:"";
+  position:absolute;
+  inset: -10px;
+  border-radius: 16px;
+  box-shadow: 0 0 18px rgba(157,226,255,0.25);
+  opacity: 0.9;
+  transform: scale(.98);
+  animation: ach-pulse 2.4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ach-pulse {
+  0% { transform: scale(.98); opacity:.7; }
+  50%{ transform: scale(1.04); opacity: .35; }
+  100%{ transform: scale(.98); opacity:.7; }
+}
+
+.milestone[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: #fff;
+  font-size: 13px;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  z-index: 60;
+  pointer-events: none;
+}
+
+
+/* small label inside milestone */
+.milestone .ms-label { font-size: 14px; }
+
+/* large snow counter top-right on achievements screen */
+#ach-snow-counter {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  font-weight:700;
+  color: var(--accent);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  z-index:30;
+  font-size:18px;
+}
+
+/* responsive reductions */
+@media (max-width:720px){
+  .milestone { width: 84px; height:48px; font-size:13px; }
+  .milestone + .connector { width: 28px; }
+  .ach-row { gap: 10px; }
+  #ach-snow-counter { right: 12px; top: 12px; font-size:16px; padding:8px 10px; }
+}
+
+
+
+
+
+.play-btn { position: relative; z-index: 2; display:flex;align-items:center;justify-content:center;font-size:52px;line-height:1; transform: translateX(-2px); }
+.icon-btn { position: absolute; top:50%; transform:translateY(-50%); z-index:1; }
+.left-icon { left: 30%; } .right-icon { right: 30%; }
+#loginScreen { background: linear-gradient(180deg, #aee7ff 0%, #e0ffff 100%); position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
+.login-title { text-align:center; font-size:30px; font-weight:600; color:var(--accent); margin-top:40px; }
+.login-wrapper { flex:1; display:flex; align-items:center; justify-content:center; width:100%; }
+.login-container { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.login-buttons { display:flex; gap:10px; margin-top:5px; }
+
+.popup { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.popup.hidden { display: none; }
+.popup-content { background:#fff; color:#111; text-align:center; padding:30px 40px; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+.popup-content h2 { margin-bottom:16px; font-family:'DM Sans',sans-serif; }
+.popup-content button { margin:8px; padding:10px 18px; border:none; border-radius:8px; background:#0077ff; color:#fff; cursor:pointer; transition:background .15s; }
+.popup-content button:hover{ background:#005ecc; }
+
+.play-btn{width:var(--play-size);height:var(--play-size);border-radius:999px;border:none;background:#fff;color:var(--accent);font-size:52px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(0,0,0,0.18);cursor:pointer;transition:transform .12s,box-shadow .12s}
+.play-btn:hover{transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,0.22)}
+.icon-btn{width:var(--icon-size);height:var(--icon-size);border-radius:999px;border:none;background:#fff;color:var(--accent);font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,0.14);cursor:pointer;transition:transform .12s}
+.icon-btn:hover{ transform: translateY(calc(-50% - 4px)); box-shadow: 0 10px 22px rgba(0,0,0,0.2); }
+
+#auth{margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:8px}
+input{padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,0.12);font-size:15px;text-align:center;min-width:260px}
+.btn{padding:9px 18px;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,0.12)}
+.muted{color:var(--accent);font-size:13px;margin-top:8px}
+#iconScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:60px;background:linear-gradient(180deg,#aee7ff,#e0ffff)}
+.icon-grid{display:grid;grid-template-columns:repeat(4,72px);gap:18px;margin-top:22px}
+.icon-tile{width:72px;height:72px;border-radius:12px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--accent);cursor:pointer;user-select:none;background:transparent;transition:transform .12s,background .12s}
+.icon-tile:hover{transform:translateY(-4px)}
+.icon-tile.selected{background:var(--accent);color:#fff}
+.back-btn{margin-top:22px;padding:10px 18px;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer}
+#gameScreen{position:fixed;inset:0;background:#001218;display:flex;flex-direction:column}
+#gameScreen {
+  transition: background 2s ease-in-out;
+}
+
+#gameCanvas{flex:1;display:block;width:100%;height:100%}
+#gameHud{position:fixed;top:10px;left:50%;transform:translateX(-50%);color:#fff;text-shadow:0 0 6px rgba(0,0,0,0.6);z-index:30;padding:6px 12px;border-radius:8px;background:rgba(0,0,0,0.22)}
+#gameTopLeft{position:fixed;top:12px;left:12px;color:#fff;z-index:30}
+#menuBtn{position:fixed;top:12px;right:12px;padding:8px 12px;border-radius:8px;border:none;background:rgba(255,255,255,0.08);color:#fff;cursor:pointer}
+footer{position:fixed;bottom:8px;width:100%;text-align:center;color:rgba(227, 234, 237, 0.8);font-size:13px}
+@media (max-width:520px){ #title{font-size:34px} :root{--play-size:86px;--icon-size:52px} .icon-grid{grid-template-columns:repeat(3,64px)} }
+</style>
+</head>
+<audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
+
+<body>
+    <div id="light-overlay"></div>
+
+  <!-- HOME -->
+  <div id="menu" class="screen" aria-label="Home screen">
+    <div id="title">
+      <img src="text.png" alt="Sky Drift Title" class="title-img">
+    </div>
+
+    <!-- Guest Popup -->
+    <div id="guest-popup" class="popup hidden" aria-hidden="true">
+      <div class="popup-content" role="dialog" aria-modal="true">
+        <h2>Hold on! You're not logged in yet.</h2>
+<p style="font-size: 13px; color: #999; margin-top: -8px; margin-bottom: 16px;">
+  Continuing as a Guest will not save your progress.
+</p>
+<button id="guest-continue">Continue as Guest</button>
+<button id="guest-close">Cancel</button>
+
+      </div>
+    </div>
+
+    <div id="infoPopup" class="popup hidden" aria-hidden="true">
+  <div class="popup-content" role="dialog" aria-modal="true">
+    <h2>Sky Drift</h2>
+    <p>Version 1.0.0<br>© 2025 JayDev Games</p>
+    <p>Made with 💙 using HTML5, CSS3, and JavaScript</p>
+    <button id="infoClose">Close</button>
+  </div>
+</div>
+
+
+    <div class="center-cluster" style="margin-top:-10px">
+      <!-- Left icon selector -->
+      <button class="image-btn tiny-btn left-icon" id="openIcons" aria-label="Open icon selector" type="button" style="left: 24%;">
+  <img src="icon.png" alt="Icon Selector" />
+</button>
+
+
+      <!-- Play -->
+      <button id="playButton" class="image-btn">
+  <img src="play.png" alt="Play" />
+</button>
+
+
+<!-- Achievements button (left of Settings) -->
+<button class="image-btn tiny-btn" id="openAchievements" type="button"
+  style="position:absolute; left:calc(50% - 95px); top:calc(50% + 120px); transform:translateX(-50%);">
+  <img src="achievements.png" alt="Achievements" style="width:150px; height:auto;" />
+</button>
+
+      <!-- Settings button (below Play) -->
+<!-- Settings button (below Play) -->
+<button class="image-btn tiny-btn" id="openSettings" type="button"
+  style="position:absolute; left:50%; transform:translateX(-50%); top:calc(50% + 120px);">
+  <img src="settings.png" alt="Settings" />
+</button>
+
+
+<button class="image-btn tiny-btn" id="openInfo" type="button"
+  style="position:absolute; left:calc(50% + 95px); top:calc(50% + 120px); transform:translateX(-50%);">
+  <img src="info.png" alt="Info" />
+</button>
+
+
+
+
+
+
+
+
+      <!-- Right login/profile button -->
+      <button class="image-btn login-btn right-icon" id="openLogin" aria-label="Open login screen" type="button" style="right: 26%;">
+  <img src="account.png" alt="Login" />
+</button>
+
+
+    </div>
+  </div>
+
+  <!-- ICON SELECT -->
+  <div id="iconScreen" class="hidden" aria-hidden="true">
+    <div style="font-size:22px;color:var(--accent);font-weight:600">Select Plane Icon</div>
+    <div class="icon-grid" id="icons"></div>
+    <button class="back-btn" id="iconBackBtn" type="button">Back</button>
+  </div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="hidden" aria-hidden="true">
+    <div class="login-title">Login / Sign Up</div>
+    <div class="login-wrapper">
+      <div class="login-container">
+        <input id="ls-username" placeholder="Username (unique)">
+        <input id="ls-email" type="email" placeholder="Email">
+        <input id="ls-password" type="password" placeholder="Password">
+
+        <div class="login-buttons">
+          <button class="btn" id="ls-login" type="button">Login</button>
+          <button class="btn" id="ls-signup" type="button">Sign Up</button>
+        </div>
+        <div id="ls-msg" class="muted" aria-live="polite"></div>
+        <button class="back-btn" id="loginBackBtn" type="button">Back</button>
+      </div>
+    </div>
+  </div>
+
+
+  
+
+<div id="settingsScreen" class="hidden" aria-hidden="true">
+  <div class="settings-title">Settings</div>
+  <div class="settings-container">
+    <div class="settings-columns">
+      <label class="setting-item">
+  <input type="checkbox" id="toggleHaze" checked>
+  <span>Show golden cursor haze</span>
+</label>
+
+<label class="setting-item">
+  <input type="checkbox" id="toggleMusic" checked>
+  <span>Enable Music</span>
+</label>
+
+
+      <!-- Empty right slot for future settings -->
+      <div></div>
+    </div>
+
+    <button class="back-btn" id="settingsBackBtn">Back</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS SCREEN -->
+<div id="achievementsScreen" class="hidden" aria-hidden="true"
+     style="position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; background:linear-gradient(180deg,#aee7ff,#e0ffff);">
+
+  <!-- snow counter top-right -->
+  <div id="ach-snow-counter" aria-hidden="false">❄️ <span id="achSnowValue">0</span></div>
+
+  <!-- Centered title -->
+  <div class="settings-title" style="text-align:center; margin-top:80px;">Your Achievements</div>
+
+  <div class="achievements-wrapper" id="achievementsContent" aria-live="polite">
+    <!-- JS will render each row here (snowflakes, levels, playtime, ...) -->
+  </div>
+
+  <!-- Back button -->
+  <button class="back-btn" id="achievementsBackBtn" type="button">Back</button>
+</div>
+
+
+
+
+  <!-- GAME SCREEN -->
+  <div id="gameScreen" class="hidden" aria-hidden="true">
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameHud">Player: <span id="hudPlayer">—</span>  | Score: <span id="hudScore">0</span> | Level: <span id="hudLevel">1</span></div>
+    <div id="gameTopLeft"><span id="playerName">—</span> <span id="playerIconSmall" style="margin-left:8px"></span></div>
+    <button id="menuBtn" type="button">Menu</button>
+  </div>
+
+  <!-- Game Over -->
+  <div id="gameOver" class="hidden" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:60;background:rgba(0,0,0,0.85);color:#fff;flex-direction:column;">
+    <div id="playerIconLarge" style="font-size:48px;margin-bottom:8px">▲</div>
+    <h2 style="margin:6px 0">Game Over</h2>
+    <div id="goStats" style="margin-bottom:14px"></div>
+    <div style="display:flex;gap:12px">
+      <button id="againBtn" class="btn">Play Again</button>
+      <button id="goMenuBtn" class="btn">Menu</button>
+    </div>
+  </div>
+
+  <!-- TUTORIAL OVERLAY -->
+<div id="tutorialOverlay" class="hidden" style="
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.85);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:200;
+  text-align:center;
+  transition:opacity .3s;
+  font-family:'DM Sans', sans-serif;
+">
+  <div id="tutorialCard" style="max-width:80%; font-size:20px; line-height:1.4; margin-bottom:30px;">
+    Use arrow keys to steer your plane!
+  </div>
+  <div style="display:flex; gap:20px;">
+    <button id="prevTutorial" class="btn">←</button>
+    <button id="nextTutorial" class="btn">→</button>
+  </div>
+  <button id="tutorialCancel" class="btn" style="margin-top:30px;">Start Game</button>
+</div>
+
+
+  
+
+  <footer>©JayDev Games 2025</footer>
+
+<script>
+/* Single stable script: attach after DOM ready to avoid null errors */
+window.addEventListener('DOMContentLoaded', () => {
+
+  /* ====== State & helpers ====== */
+  const planeIcons = ["▲","➤","◆","⬟"];
+  let planeShape = 0;
+  let currentUser = null;
+
+  function getUsers(){ return JSON.parse(localStorage.getItem('skyDriftUsers')||'{}'); }
+  function saveUsers(u){ localStorage.setItem('skyDriftUsers', JSON.stringify(u)); }
+  function hash(p){ let h=0; for(let i=0;i<p.length;i++) h=(h<<5)-h+p.charCodeAt(i)|0; return h.toString(); }
+
+  /* ====== DOM refs ====== */
+  const menu = document.getElementById('menu');
+  const iconScreen = document.getElementById('iconScreen');
+  const playBtn = document.getElementById('playButton');
+  const openIcons = document.getElementById('openIcons');
+  const iconBackBtn = document.getElementById('iconBackBtn');
+  const iconsGrid = document.getElementById('icons');
+  const gameScreen = document.getElementById('gameScreen');
+  const gameCanvas = document.getElementById('gameCanvas');
+  const hudPlayer = document.getElementById('hudPlayer');
+  const hudScore = document.getElementById('hudScore');
+  const hudLevel = document.getElementById('hudLevel');
+  const playerName = document.getElementById('playerName');
+  const playerIconSmall = document.getElementById('playerIconSmall');
+  const menuBtn = document.getElementById('menuBtn');
+  const gameOverOverlay = document.getElementById('gameOver');
+  const playerIconLarge = document.getElementById('playerIconLarge');
+  const goStats = document.getElementById('goStats');
+  const againBtn = document.getElementById('againBtn');
+  const goMenuBtn = document.getElementById('goMenuBtn');
+
+  const loginScreen = document.getElementById('loginScreen');
+  const openLogin = document.getElementById('openLogin');
+  const loginBackBtn = document.getElementById('loginBackBtn');
+
+  const lsUsername = document.getElementById('ls-username');
+  const lsPassword = document.getElementById('ls-password');
+  const lsEmail = document.getElementById('ls-email');
+
+  const lsLogin = document.getElementById('ls-login');
+  const lsSignup = document.getElementById('ls-signup');
+  const lsMsg = document.getElementById('ls-msg');
+
+  const guestPopup = document.getElementById('guest-popup');
+  const guestContinue = document.getElementById('guest-continue');
+  const guestClose = document.getElementById('guest-close');
+
+const openInfo = document.getElementById('openInfo');
+const infoPopup = document.getElementById('infoPopup');
+const infoClose = document.getElementById('infoClose');
+
+// === Achievements Screen ===
+const achievementsScreen = document.getElementById('achievementsScreen');
+const openAchievements = document.getElementById('openAchievements');
+const achievementsBackBtn = document.getElementById('achievementsBackBtn');
+/* === SNOWFLAKE COUNTER (persistent) === */
+const snowflakeCounter = document.getElementById('snowflakeCounter');
+
+
+
+
+function getSnowflakes(username) {
+  const users = getUsers();
+  if (username && users[username]) return users[username].snowflakes || 0;
+  return parseInt(sessionStorage.getItem('guestSnowflakes') || '0', 10);
+}
+
+function saveSnowflakes(username, count) {
+  if (username && username !== 'Guest') {
+    const users = getUsers();
+    if (!users[username]) return;
+    users[username].snowflakes = count;
+    saveUsers(users);
+  } else {
+    sessionStorage.setItem('guestSnowflakes', count);
+  }
+}
+
+function updateSnowflakeCount(delta = 0) {
+  if (!currentUser) return;
+  let total = getSnowflakes(currentUser) + delta;
+  saveSnowflakes(currentUser, total);
+  if (snowflakeCounter) snowflakeCounter.textContent = `❄️ ${total}`;
+}
+
+// update display when Achievements screen opens
+openAchievements.addEventListener('click', () => {
+  menu.style.display = 'none';
+  achievementsScreen.classList.remove('hidden');
+  achievementsScreen.style.display = 'flex';
+  achievementsScreen.setAttribute('aria-hidden', 'false');
+  renderAchievements();
+  updateAchievements();
+
+  // refresh counter each time
+  if (snowflakeCounter) snowflakeCounter.textContent = `❄️ ${getSnowflakes(currentUser)}`;
+});
+
+
+
+
+achievementsBackBtn.addEventListener('click', () => {
+  achievementsScreen.classList.add('hidden');
+  achievementsScreen.style.display = 'none';
+  achievementsScreen.setAttribute('aria-hidden', 'true');
+  menu.style.display = 'flex';
+});
+
+
+openInfo.addEventListener('click', () => {
+  infoPopup.classList.add('show');
+  infoPopup.classList.remove('hidden');
+  infoPopup.setAttribute('aria-hidden', 'false');
+});
+
+infoClose.addEventListener('click', () => {
+  infoPopup.classList.remove('show');
+  setTimeout(() => {
+    infoPopup.classList.add('hidden');
+    infoPopup.setAttribute('aria-hidden', 'true');
+  }, 250); // matches CSS transition
+});
+
+
+  /* ====== Icon grid ====== */
+  function renderIcons(){
+    iconsGrid.innerHTML = '';
+    planeIcons.forEach((ic,i) => {
+      const el = document.createElement('div');
+      el.className = 'icon-tile';
+      el.textContent = ic;
+      if (i === planeShape) el.classList.add('selected');
+      el.addEventListener('click', () => {
+        planeShape = i;
+        document.querySelectorAll('.icon-tile').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+        if (currentUser) { const users = getUsers(); if (users[currentUser]) { users[currentUser].icon = i; saveUsers(users); } }
+        playerIconSmall.textContent = planeIcons[planeShape];
+      });
+      iconsGrid.appendChild(el);
+    });
+  }
+  renderIcons();
+
+
+  /* ---------------- Achievements rendering + persistence ---------------- */
+const achContainer = document.getElementById('achievementsContent');
+const achSnowValue = document.getElementById('achSnowValue');
+
+/* Milestone definitions (numbers are the required totals) */
+const achievementsSpec = [
+  { key: 'snowflakes', title: 'Snowflakes', items: [10, 50, 100, 200, 500, 1000, 2000] },
+  { key: 'levels',     title: 'Levels',     items: [2, 3, 5, 10, 20, 50, 100] },
+  { key: 'playtime',   title: 'Playtime (min)', items: [5, 15, 30, 60, 120, 210, 300] }
+];
+
+/* ensure user storage keys exist */
+function ensureUserFields(username) {
+  const users = getUsers();
+  if (!username || username === 'Guest') return;
+  if (!users[username]) users[username] = { email:'', passwordHash:'', highScore:0, icon:0 };
+  if (typeof users[username].snowflakesTotal === 'undefined') users[username].snowflakesTotal = 0;
+  if (typeof users[username].playtimeMinutes === 'undefined') users[username].playtimeMinutes = 0;
+  saveUsers(users);
+}
+
+/* increment snowflakes (call this when player collects) */
+function incrementSnowflakes(amount=1){
+  if (!currentUser || currentUser === 'Guest') {
+    // keep in session for guest
+    const g = Number(sessionStorage.getItem('guestSnowflakes')||0) + amount;
+    sessionStorage.setItem('guestSnowflakes', g);
+  } else {
+    const users = getUsers();
+    ensureUserFields(currentUser);
+    users[currentUser].snowflakesTotal = (users[currentUser].snowflakesTotal || 0) + amount;
+    saveUsers(users);
+  }
+}
+
+// simple playtime tracker (accumulates seconds)
+let playtimeAccumulator = 0; // seconds
+let lastPlayTick = performance.now();
+
+function tickPlaytime(dtMs) {
+  playtimeAccumulator += dtMs / 1000;
+  if (playtimeAccumulator >= 60) {
+    const minutes = Math.floor(playtimeAccumulator/60);
+    playtimeAccumulator -= minutes*60;
+    if (!currentUser || currentUser === 'Guest') {
+      const prev = Number(sessionStorage.getItem('guestPlaytime')||0);
+      sessionStorage.setItem('guestPlaytime', prev + minutes);
+    } else {
+      const users = getUsers();
+      ensureUserFields(currentUser);
+      users[currentUser].playtimeMinutes = (users[currentUser].playtimeMinutes || 0) + minutes;
+      saveUsers(users);
+    }
+    updateAchievements();
+  }
+}
+
+
+/* Get total snowflakes for display (user or guest-session) */
+function getSnowflakeTotalForCurrent() {
+  if (!currentUser || currentUser === 'Guest') {
+    return Number(sessionStorage.getItem('guestSnowflakes')||0);
+  } else {
+    const users = getUsers();
+    ensureUserFields(currentUser);
+    return Number((users[currentUser].snowflakesTotal || 0));
+  }
+}
+
+/* Render achievements rows once (creates DOM nodes) */
+function renderAchievements() {
+  achContainer.innerHTML = '';
+  achievementsSpec.forEach(row => {
+    const rowWrap = document.createElement('div');
+    rowWrap.className = 'ach-row';
+    rowWrap.innerHTML = `<div class="row-title">${row.title}</div>`;
+
+    const track = document.createElement('div');
+    track.className = 'milestone-track';
+
+    row.items.forEach((val, idx) => {
+      const ms = document.createElement('div');
+      ms.className = 'milestone locked';
+      ms.dataset.category = row.key;
+      ms.dataset.value = String(val);
+
+      // descriptive hover text
+      const tip = row.key === 'playtime'
+        ? `Play for ${val} minutes total.`
+        : (row.key === 'levels'
+           ? `Reach level ${val}.`
+           : `Collect ${val} snowflakes.`);
+
+      ms.setAttribute('data-tip', tip);
+
+      const label = document.createElement('div');
+      label.className = 'ms-label';
+      label.textContent = String(val);
+      ms.appendChild(label);
+      track.appendChild(ms);
+
+      // connector (except after last)
+      if (idx < row.items.length - 1) {
+        const conn = document.createElement('div');
+        conn.className = 'connector';
+        track.appendChild(conn);
+      }
+    });
+
+    rowWrap.appendChild(track);
+    achContainer.appendChild(rowWrap);
+  });
+}
+
+/* Called each frame (or whenever data changes) - marks achieved/locked and highlights most recent */
+function updateAchievements(){
+  // update snow counter top-right
+  const totalSnow = getSnowflakeTotalForCurrent();
+  achSnowValue.textContent = totalSnow;
+
+  achievementsSpec.forEach(row => {
+    const msEls = Array.from(achContainer.querySelectorAll(`.milestone[data-category="${row.key}"]`));
+    if (!msEls.length) return;
+    // determine progress value for the category
+    let progress = 0;
+    if (row.key === 'snowflakes') progress = totalSnow;
+    else if (row.key === 'levels') progress = state.level || 0;
+    else if (row.key === 'playtime') {
+      const users = getUsers();
+      if (currentUser && currentUser !== 'Guest') {
+        progress = (users[currentUser] && users[currentUser].playtimeMinutes) || 0;
+      } else {
+        progress = Number(sessionStorage.getItem('guestPlaytime')||0);
+      }
+    }
+
+    // mark each milestone
+    let mostRecentIndex = -1;
+    row.items.forEach((required, i) => {
+      const el = msEls[i];
+      if (!el) return;
+      if (progress >= required) {
+        el.classList.remove('locked');
+        el.classList.add('achieved');
+        mostRecentIndex = i;
+        el.removeAttribute('aria-hidden');
+      } else {
+        el.classList.remove('achieved');
+        el.classList.add('locked');
+      }
+    });
+
+    // Only the most recent achieved should keep the special glow (others are achieved but not pulsing).
+    msEls.forEach((el, i) => {
+      if (i === mostRecentIndex && mostRecentIndex !== -1) el.classList.add('achieved');
+      else el.classList.remove('achieved'); // others become neutral/locked
+      // keep locked visual if not reached
+      if (i > mostRecentIndex) el.classList.add('locked');
+    });
+  });
+}
+
+/* Render once now */
+renderAchievements();
+
+
+  /* ====== Navigation for icon/select/login screens ====== */
+  openIcons.addEventListener('click', () => {
+    menu.style.display = 'none';
+    iconScreen.style.display = 'flex';
+    iconScreen.classList.remove('hidden');
+    iconScreen.setAttribute('aria-hidden','false');
+  });
+  iconBackBtn.addEventListener('click', () => {
+    iconScreen.style.display = 'none';
+    iconScreen.classList.add('hidden');
+    iconScreen.setAttribute('aria-hidden','true');
+    menu.style.display = 'flex';
+  });
+
+  openLogin.addEventListener('click', () => {
+    menu.style.display = 'none';
+    loginScreen.classList.remove('hidden');
+    loginScreen.style.display = 'flex';
+    loginScreen.setAttribute('aria-hidden','false');
+  });
+  loginBackBtn.addEventListener('click', () => {
+    loginScreen.classList.add('hidden');
+    loginScreen.style.display = 'none';
+    loginScreen.setAttribute('aria-hidden','true');
+    menu.style.display = 'flex';
+  });
+
+// ====== Settings screen ======
+const settingsScreen = document.getElementById('settingsScreen');
+const openSettings = document.getElementById('openSettings');
+const settingsBackBtn = document.getElementById('settingsBackBtn');
+const hazeToggle = document.getElementById('toggleHaze');
+const lightOverlay = document.getElementById('light-overlay');
+const musicToggle = document.getElementById("toggleMusic");
+const bgMusic = document.getElementById("bgMusic");
+
+// === Music Toggle Fix ===
+
+// Restore previous music preference if saved
+if (localStorage.getItem("musicEnabled") === "false") {
+  musicToggle.checked = false;
+  bgMusic.pause();
+} else {
+  musicToggle.checked = true;
+  try {
+    bgMusic.volume = 0.5;
+    bgMusic.play().catch(() => {});
+  } catch (e) {}
+}
+
+// Respond to toggle changes
+musicToggle.addEventListener("change", () => {
+  const enabled = musicToggle.checked;
+  localStorage.setItem("musicEnabled", enabled);
+
+  if (enabled) {
+    try {
+      bgMusic.volume = 0.5;
+      bgMusic.play().catch(() => {});
+    } catch (e) {}
+  } else {
+    bgMusic.pause();
+  }
+});
+
+// === Fix autoplay block: start music after first user click ===
+let musicInitialized = false;
+function tryInitMusic() {
+  if (musicInitialized) return;
+  musicInitialized = true;
+  if (musicToggle.checked) {
+    try {
+      bgMusic.volume = 0.5;
+      bgMusic.play().catch(() => {});
+    } catch (e) {}
+  }
+}
+
+// attach this to any interactive buttons
+["playButton", "openSettings", "openLogin", "openAchievements", "openIcons"].forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener("click", tryInitMusic);
+});
+
+
+
+
+
+openSettings.addEventListener('click', () => {
+  menu.style.display = 'none';
+  settingsScreen.classList.remove('hidden');
+  settingsScreen.style.display = 'flex';
+  settingsScreen.setAttribute('aria-hidden', 'false');
+});
+
+settingsBackBtn.addEventListener('click', () => {
+  settingsScreen.classList.add('hidden');
+  settingsScreen.style.display = 'none';
+  settingsScreen.setAttribute('aria-hidden', 'true');
+  menu.style.display = 'flex';
+});
+
+hazeToggle.addEventListener('change', () => {
+  lightOverlay.style.display = hazeToggle.checked ? 'block' : 'none';
+});
+
+// initial state
+lightOverlay.style.display = hazeToggle.checked ? 'block' : 'none';
+
+
+hazeToggle.addEventListener('change', () => {
+  if (hazeToggle.checked) {
+    lightOverlay.style.display = 'block';
+  } else {
+    lightOverlay.style.display = 'none';
+  }
+});
+
+
+
+openSettings.addEventListener('click', () => {
+  menu.style.display = 'none';
+  settingsScreen.classList.remove('hidden');
+  settingsScreen.style.display = 'flex';
+  settingsScreen.setAttribute('aria-hidden', 'false');
+});
+
+settingsBackBtn.addEventListener('click', () => {
+  settingsScreen.classList.add('hidden');
+  settingsScreen.style.display = 'none';
+  settingsScreen.setAttribute('aria-hidden', 'true');
+  menu.style.display = 'flex';
+});
+
+
+  /* ====== Login / Signup handlers (local storage) ====== */
+  // --- SIGN UP ---
+lsSignup.addEventListener('click', () => {
+  const username = lsUsername.value.trim();
+  const email = lsEmail.value.trim();
+  const password = lsPassword.value.trim();
+  const users = getUsers();
+
+  if (!username || !email || !password) {
+    lsMsg.textContent = "Please fill in all fields.";
+    return;
+  }
+
+  // username must be unique
+  if (users[username]) {
+    lsMsg.textContent = "That username is already taken.";
+    return;
+  }
+
+  users[username] = {
+    email,
+    passwordHash: hash(password),
+    highScore: 0,
+    icon: planeShape
+  };
+  saveUsers(users);
+  lsMsg.textContent = "Sign-up successful! You can log in now.";
+  lsUsername.value = "";
+  lsEmail.value = "";
+  lsPassword.value = "";
+});
+
+
+ // --- LOGIN ---
+lsLogin.addEventListener('click', () => {
+  const username = lsUsername.value.trim();
+  const password = lsPassword.value.trim();
+  const users = getUsers();
+
+  if (!username || !password) {
+    lsMsg.textContent = "Enter your username and password.";
+    return;
+  }
+
+  if (!users[username]) {
+    lsMsg.textContent = "No such user.";
+    return;
+  }
+
+  if (users[username].passwordHash !== hash(password)) {
+    lsMsg.textContent = "Incorrect password.";
+    return;
+  }
+
+ currentUser = username;
+lsMsg.textContent = "Successfully logged in!";
+
+// stay on screen briefly for feedback
+setTimeout(() => {
+  loginScreen.classList.add('hidden');
+  loginScreen.style.display = 'none';
+  menu.style.display = 'flex';
+}, 10000);
+
+});
+
+
+playBtn.addEventListener('click', () => {
+  // If not logged in → show guest popup
+  if (!currentUser) {
+    guestPopup.classList.remove('hidden');
+    guestPopup.classList.add('show');
+    guestPopup.style.display = 'flex';
+    guestPopup.setAttribute('aria-hidden','false');
+  } 
+  // Otherwise, start the game normally
+  else {
+    startGame();
+  }
+});
+
+
+
+ guestContinue.addEventListener('click', () => {
+  currentUser = "Guest";
+  guestPopup.classList.remove('show');
+  guestPopup.style.display = 'none';
+  guestPopup.setAttribute('aria-hidden','true');
+  startGame();
+});
+
+guestClose.addEventListener('click', () => {
+  guestPopup.classList.remove('show');
+  guestPopup.style.display = 'none';
+  guestPopup.setAttribute('aria-hidden','true');
+});
+
+  /* ====== Gameplay (kept mostly the same) ====== */
+  const ctx = gameCanvas.getContext('2d');
+  let raf = null;
+  let state = {
+    plane: { x:0,y:0,ang:-Math.PI/2,speed:0 },
+    feathers: [],
+    turbulence: [],
+    trail: [],
+    score: 0,
+    level: 1,
+    highScore: 0,
+    maxSpeed: 4,
+    phaseIndex: 0,
+    bg1: "#aee7ff", bg2: "#e0ffff",
+    targetBg1: "#aee7ff", targetBg2: "#e0ffff",
+    fade: 1
+  };
+  const skyPhases = [
+    ["#aee7ff","#e0ffff"],
+    ["#021024","#090921"],
+    ["#4FC3F7","#E1F5FE"],
+    ["#FF8C00","#FF69B4"]
+  ];
+
+  function setPhaseIndex(idx){
+    state.phaseIndex = idx % skyPhases.length;
+    state.targetBg1 = skyPhases[state.phaseIndex][0];
+    state.targetBg2 = skyPhases[state.phaseIndex][1];
+    state.fade = 0;
+  }
+
+  const tutorialOverlay = document.getElementById('tutorialOverlay');
+const tutorialCard = document.getElementById('tutorialCard');
+const prevTutorial = document.getElementById('prevTutorial');
+const nextTutorial = document.getElementById('nextTutorial');
+const tutorialCancel = document.getElementById('tutorialCancel');
+
+const tutorialSlides = [
+  "Use ⬆️ to accelerate and ⬅️ ➡️ to turn.",
+  "Collect snowflakes ❄️ for points.",
+  "Avoid red turbulence rings!",
+  "Level up every 20 points — skies change too!",
+  "Ready? Let’s drift to the skies!"
+];
+let tutorialIndex = 0;
+
+function showTutorial() {
+  tutorialIndex = 0;
+  tutorialCard.textContent = tutorialSlides[tutorialIndex];
+  tutorialOverlay.classList.remove('hidden');
+  tutorialOverlay.style.opacity = 1;
+}
+
+nextTutorial.addEventListener('click', () => {
+  tutorialIndex = (tutorialIndex + 1) % tutorialSlides.length;
+  tutorialCard.textContent = tutorialSlides[tutorialIndex];
+});
+
+prevTutorial.addEventListener('click', () => {
+  tutorialIndex = (tutorialIndex - 1 + tutorialSlides.length) % tutorialSlides.length;
+  tutorialCard.textContent = tutorialSlides[tutorialIndex];
+});
+
+tutorialCancel.addEventListener('click', () => {
+  tutorialOverlay.style.opacity = 0;
+  setTimeout(() => tutorialOverlay.classList.add('hidden'), 300);
+  beginGameplay();
+});
+
+
+function startGame() {
+  // Prepare canvas + hide menu first
+  const users = getUsers();
+  state.score = 0;
+  state.level = 1;
+  state.maxSpeed = 4;
+  
+
+  if (users[currentUser]) state.highScore = users[currentUser].highScore || 0;
+  gameCanvas.width = window.innerWidth;
+  gameCanvas.height = window.innerHeight;
+  state.plane.x = gameCanvas.width / 2;
+  state.plane.y = gameCanvas.height / 2;
+  state.plane.ang = -Math.PI / 2;
+  state.plane.speed = 0;
+  state.feathers = [];
+  state.turbulence = [];
+  
+
+  hudPlayer.textContent = currentUser;
+  playerName.textContent = currentUser;
+  playerIconSmall.textContent = planeIcons[planeShape];
+
+  // Transition from menu → game screen
+  menu.style.display = 'none';
+  iconScreen.style.display = 'none';
+  gameScreen.style.display = 'flex';
+  gameScreen.classList.remove('hidden');
+
+  // Check if user has seen tutorial before
+  const tutorialKey = `tutorialSeen_${currentUser}`;
+  const seenTutorial = localStorage.getItem(tutorialKey) === 'true';
+
+  if (!seenTutorial) {
+    // Show tutorial overlay ON GAME SCREEN
+    tutorialIndex = 0;
+    tutorialCard.textContent = tutorialSlides[tutorialIndex];
+    tutorialOverlay.classList.remove('hidden');
+    tutorialOverlay.style.opacity = 1;
+    localStorage.setItem(tutorialKey, 'true');
+  } else {
+    // Skip straight into gameplay
+    beginGameplay();
+  }
+}
+
+
+function beginGameplay() {
+  const users = getUsers();
+  state.score = 0;
+  state.level = 1;
+  state.maxSpeed = 4;
+
+  if (users[currentUser]) {
+    state.highScore = users[currentUser].highScore || 0;
+  }
+
+  gameCanvas.width = window.innerWidth;
+  gameCanvas.height = window.innerHeight;
+  state.plane.x = gameCanvas.width / 2;
+  state.plane.y = gameCanvas.height / 2;
+  state.plane.ang = -Math.PI / 2;
+  state.plane.speed = 0;
+  state.feathers = [];
+  state.turbulence = [];
+  
+
+  hudPlayer.textContent = currentUser;
+  playerName.textContent = currentUser;
+  playerIconSmall.textContent = planeIcons[planeShape];
+
+  menu.style.display = 'none';
+  iconScreen.style.display = 'none';
+  gameScreen.style.display = 'flex';
+  gameScreen.classList.remove('hidden');
+
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(loop);
+
+  // ----- SAFE BACKGROUND INIT -----
+  // compute the phase deterministically from state.level (same logic as updateBackground)
+  const phase = Math.floor(((state.level - 1) % 8) / 2);
+  switch (phase) {
+    case 0:
+      state.targetBg1 = "#a3d9ff";
+      state.targetBg2 = "#fefefe";
+      break;
+    case 1:
+      state.targetBg1 = "#fcb045";
+      state.targetBg2 = "#fd1d1d";
+      break;
+    case 2:
+      state.targetBg1 = "#001f3f";
+      state.targetBg2 = "#0f2027";
+      break;
+    case 3:
+      state.targetBg1 = "#ffb347";
+      state.targetBg2 = "#ffcc33";
+      break;
+    default:
+      // fallback to existing targets if something odd happens
+      state.targetBg1 = state.targetBg1 || "#aee7ff";
+      state.targetBg2 = state.targetBg2 || "#e0ffff";
+  }
+
+  // Immediately make the visible bg match the target so the first frame is stable.
+  // Set fade = 1 so the blending code in loop() will treat bg as already settled.
+  state.bg1 = state.targetBg1;
+  state.bg2 = state.targetBg2;
+  state.fade = 1;
+  // ---------------------------------
+}
+
+
+  function spawnFeather(){
+    const base = 0.22 - Math.min(0.16, (state.level-1) * 0.01);
+    if (Math.random() < base) {
+      const x = Math.random() * (gameCanvas.width - 40) + 20;
+      state.feathers.push({ x: x, y: -20, r: 6 });
+    }
+  }
+  function spawnTurbulence(){
+    const base = 0.015 + (state.level-1) * 0.005;
+    if (Math.random() < base) {
+      let attempts = 0, x;
+      do {
+        x = Math.random() * (gameCanvas.width - 120) + 60;
+        attempts++;
+        if (attempts > 6) break;
+      } while (state.turbulence.some(t => Math.abs(t.x - x) < 120));
+      state.turbulence.push({ x: x, y: -40, r: 36 });
+    }
+  }
+  function checkLevelUp(){
+  const newLevel = Math.floor(state.score / 20) + 1;
+  if (newLevel > state.level){
+    state.level = newLevel;
+    state.maxSpeed = Math.min(4 + (state.level - 1) * 0.3, 10);
+
+    // --- NEW: robust level → background mapping ---
+    // Levels 1-2: morning
+    // Levels 3-4: dusk
+    // Levels 5-6: night
+    // Levels 7-8: dawn
+    const phase = Math.floor(((state.level - 1) % 8) / 2);
+    switch (phase) {
+      case 0: // morning
+        state.targetBg1 = "#aee7ff";
+        state.targetBg2 = "#e0ffff";
+        break;
+      case 1: // dusk
+        state.targetBg1 = "#fcb045";
+        state.targetBg2 = "#fd1d1d";
+        break;
+      case 2: // night
+        state.targetBg1 = "#001f3f";
+        state.targetBg2 = "#0f2027";
+        break;
+      case 3: // dawn
+        state.targetBg1 = "#ffb347";
+        state.targetBg2 = "#ffcc33";
+        break;
+    }
+
+    state.fade = 0; // triggers the smooth blend in loop()
+  }
+}
+
+
+  function planeColorFromLevel(level){
+    const pal = ["#FFFFFF","#87CEFA","#FFD700","#FFB6C1","#9FE2BF","#7FFFD4","#DDA0DD","#FFA07A"];
+    return pal[(level-1) % pal.length];
+  }
+  function blendColors(a,b,t){
+    const ar = parseInt(a.slice(1,3),16), ag = parseInt(a.slice(3,5),16), ab = parseInt(a.slice(5,7),16);
+    const br = parseInt(b.slice(1,3),16), bg = parseInt(b.slice(3,5),16), bb = parseInt(b.slice(5,7),16);
+    const rr = Math.round(ar + (br - ar) * t).toString(16).padStart(2,"0");
+    const rg = Math.round(ag + (bg - ag) * t).toString(16).padStart(2,"0");
+    const rb = Math.round(ab + (bb - ab) * t).toString(16).padStart(2,"0");
+    return "#" + rr + rg + rb;
+  }
+
+  /* Input */
+  const keysDown = {};
+  window.addEventListener('keydown',(e)=>{ keysDown[e.key] = true; });
+  window.addEventListener('keyup',(e)=>{ keysDown[e.key] = false; });
+
+  /* Main loop */
+  let lastTime = 0;
+  function loop(ts){
+    raf = requestAnimationFrame(loop);
+    const dt = Math.min(32, ts - (lastTime || ts));
+    lastTime = ts;
+
+    // after you compute dt:
+    tickPlaytime(dt);
+
+
+    if (keysDown['ArrowLeft']) state.plane.ang -= 0.04 * (dt/16);
+    if (keysDown['ArrowRight']) state.plane.ang += 0.04 * (dt/16);
+    if (keysDown['ArrowUp']) state.plane.speed = Math.min(state.plane.speed + 0.06 * (dt/16), state.maxSpeed);
+    else state.plane.speed *= 0.985;
+
+    state.plane.x += Math.cos(state.plane.ang) * state.plane.speed;
+    state.plane.y += Math.sin(state.plane.ang) * state.plane.speed;
+
+    const scroll = 1.8 + (state.level - 1) * 0.05;
+    for (let f of state.feathers) f.y += scroll * (dt/16);
+    for (let t of state.turbulence) t.y += scroll * (dt/16);
+
+    spawnFeather();
+    spawnTurbulence();
+
+    if (state.feathers.length > 120) state.feathers.splice(0, state.feathers.length - 120);
+    if (state.turbulence.length > 50) state.turbulence.splice(0, state.turbulence.length - 50);
+    state.feathers = state.feathers.filter(f => f.y < gameCanvas.height + 60);
+    state.turbulence = state.turbulence.filter(t => t.y < gameCanvas.height + 80);
+
+   for (let i = state.feathers.length - 1; i >= 0; i--){
+  const f = state.feathers[i];
+  const dx = f.x - state.plane.x, dy = f.y - state.plane.y;
+  if (Math.hypot(dx, dy) < (f.r + 12)){
+    state.feathers.splice(i,1);
+    state.score += 1;
+    // persist snowflake count for current user (or guest-session)
+    incrementSnowflakes(1);
+    // small UI update (if achievements visible)
+    updateAchievements();
+    checkLevelUp();
+  }
+}
+
+
+    for (let t of state.turbulence){
+      const dx = t.x - state.plane.x, dy = t.y - state.plane.y;
+      if (Math.hypot(dx, dy) < (t.r + 12)){
+        showGameOver();
+        return;
+      }
+    }
+
+    if (state.plane.x < -60 || state.plane.x > gameCanvas.width + 60 || state.plane.y < -60 || state.plane.y > gameCanvas.height + 60){
+      showGameOver(); return;
+    }
+
+    if (state.fade < 1) {
+      state.fade = Math.min(1, state.fade + (dt/3000));
+      state.bg1 = blendColors(state.bg1, state.targetBg1, state.fade);
+      state.bg2 = blendColors(state.bg2, state.targetBg2, state.fade);
+    } else {
+      state.bg1 = state.targetBg1;
+      state.bg2 = state.targetBg2;
+    }
+
+    // update trail
+    state.trail.push({
+      x: state.plane.x,
+      y: state.plane.y,
+    color: planeColorFromLevel(state.level),
+    life: 1.0
+});
+if (state.trail.length > 30) state.trail.shift();
+state.trail.forEach(p => p.life -= 0.03 * (dt / 16));
+state.trail = state.trail.filter(p => p.life > 0);
+
+
+    // draw
+    const g = ctx.createLinearGradient(0,0,0,gameCanvas.height);
+    g.addColorStop(0, state.bg1);
+    g.addColorStop(1, state.bg2);
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,gameCanvas.width,gameCanvas.height);
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    const cloudCount = 4;
+    for (let i=0;i<cloudCount;i++){
+      const cx = (i * 230 + Math.floor(ts/40)) % (gameCanvas.width + 300) - 150;
+      const cy = 80 + i*60;
+      ctx.beginPath(); ctx.ellipse(cx, cy, 100, 28, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.fillStyle = "#fff";
+    for (let f of state.feathers){
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,0,0,0.6)";
+    for (let t of state.turbulence){
+      ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.stroke();
+    }
+
+
+    // draw trail
+for (let i = 0; i < state.trail.length; i++) {
+  const t = state.trail[i];
+  const alpha = t.life * 0.8;
+  const grad = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 12);
+  grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
+  grad.addColorStop(1, t.color + "00");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+
+    ctx.save();
+    ctx.translate(state.plane.x, state.plane.y);
+    ctx.rotate(state.plane.ang + Math.PI/2);
+    const planeCol = planeColorFromLevel(state.level);
+    ctx.shadowBlur = 16; ctx.shadowColor = planeCol;
+    ctx.fillStyle = planeCol;
+    ctx.beginPath();
+    const s = 18;
+    switch (planeShape){
+      case 0: ctx.moveTo(0,-s); ctx.lineTo(s,s); ctx.lineTo(-s,s); break;
+      case 1: ctx.moveTo(0,-14); ctx.lineTo(10,10); ctx.lineTo(4,10); ctx.lineTo(4,14); ctx.lineTo(-4,14); ctx.lineTo(-4,10); ctx.lineTo(-10,10); break;
+      case 2: ctx.moveTo(0,-14); ctx.lineTo(10,0); ctx.lineTo(0,14); ctx.lineTo(-10,0); break;
+      case 3: for (let k=0;k<5;k++){ const a=k*(Math.PI*2)/5 - Math.PI/2; ctx.lineTo(Math.cos(a)*12, Math.sin(a)*12); } break;
+    }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+
+    if (hudScore._last !== state.score) { hudScore.textContent = state.score; hudScore._last = state.score; }
+    if (hudLevel._last !== state.level) { hudLevel.textContent = state.level; hudLevel._last = state.level; }
+    if (hudPlayer._last !== currentUser) { hudPlayer.textContent = currentUser || '—'; hudPlayer._last = currentUser; }
+  }
+
+  // update achievement UI each frame (cheap DOM ops are minimal because classes change only when needed)
+updateAchievements();
+
+
+  function stopGame(){
+    cancelAnimationFrame(raf);
+    gameScreen.style.display = 'none';
+    gameScreen.classList.add('hidden');
+    if (currentUser === "Guest") currentUser = null;
+    menu.style.display = 'flex';
+  }
+
+  function showGameOver(){
+    cancelAnimationFrame(raf);
+    const users = getUsers();
+    if (currentUser && users[currentUser]) {
+      users[currentUser].highScore = Math.max(users[currentUser].highScore || 0, state.score);
+      saveUsers(users);
+    }
+    playerIconLarge.textContent = planeIcons[planeShape];
+    playerIconLarge.style.color = planeColorFromLevel(state.level);
+    goStats.innerHTML = `<b>${currentUser}</b><br>Score: ${state.score}<br>Level: ${state.level}<br>High Score: ${users[currentUser] ? users[currentUser].highScore : 0}`;
+    gameOverOverlay.classList.remove('hidden');
+  }
+
+  /* UI controls after DOM ready */
+  menuBtn.addEventListener('click', stopGame);
+  againBtn.addEventListener('click', () => { gameOverOverlay.classList.add('hidden'); startGame(); });
+  goMenuBtn.addEventListener('click', () => { gameOverOverlay.classList.add('hidden'); stopGame(); });
+
+  /* init view */
+  menu.style.display = 'flex';
+  iconScreen.style.display = 'none';
+  gameScreen.style.display = 'none';
+  gameOverOverlay.classList.add('hidden');
+  
+
+  /* resize */
+  window.addEventListener('resize', () => {
+    if (gameScreen.style.display !== 'none'){
+      gameCanvas.width = window.innerWidth; gameCanvas.height = window.innerHeight;
+    }
+  });
+
+});
+
+
+// === Light glow effect ===
+const light = document.getElementById('light-overlay');
+let lx = window.innerWidth / 2, ly = window.innerHeight / 2; // start in center
+let tx = lx, ty = ly;
+
+window.addEventListener('mousemove', e => {
+  tx = e.clientX;
+  ty = e.clientY;
+});
+
+// smooth movement
+function updateLight() {
+  lx += (tx - lx) * 0.08;
+  ly += (ty - ly) * 0.08;
+  light.style.background = `radial-gradient(circle at ${lx}px ${ly}px, rgba(225,215,0,0.35) 0%, rgba(225,215,0,0) 20%)`;
+
+  requestAnimationFrame(updateLight);
+}
+updateLight();
+
+// === Dynamic Background Transition by Level ===
+// === Dynamic Background Transition (4-phase, 8-level loop) ===
+function updateBackground(level) {
+  const phase = Math.floor(((level - 1) % 8) / 2);
+
+  switch (phase) {
+    case 0: // Morning
+      state.targetBg1 = "#a3d9ff";
+      state.targetBg2 = "#fefefe";
+      break;
+    case 1: // Dusk / Sunset
+      state.targetBg1 = "#fcb045";
+      state.targetBg2 = "#fd1d1d";
+      break;
+    case 2: // Night
+      state.targetBg1 = "#001f3f";
+      state.targetBg2 = "#0f2027";
+      break;
+    case 3: // Dawn / Sunrise
+      state.targetBg1 = "#ffb347";
+      state.targetBg2 = "#ffcc33";
+      break;
+  }
+  state.fade = 0; // triggers blend in the loop()
+}
+
+
+</script>
+</body>
+</html>
